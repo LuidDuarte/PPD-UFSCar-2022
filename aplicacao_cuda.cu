@@ -16,7 +16,6 @@ void convolution(int n, int m, short int *mask, unsigned char *original, unsigne
             aux = j;
             for(p = 0; p < 3; p++){
                 for(q = 0; q < 3; q++){
-                    //pixel_resultante += original[aux_i*n + aux_j] * mask[p*3 + q];
                     pixel_resultante += original[aux_i*n + aux_j] * mask[p*3 + q];
                     aux_j++;
                 }
@@ -24,8 +23,8 @@ void convolution(int n, int m, short int *mask, unsigned char *original, unsigne
                 aux_i++;
             }
             //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
-            //resultado[i*n + j] = pixel_resultante/16;
-            resultado[i*n + j] = original[i*n + j];
+            resultado[i*n + j] = pixel_resultante/16;
+            //resultado[i*n + j] = original[i*n + j];
         }
     }
 }
