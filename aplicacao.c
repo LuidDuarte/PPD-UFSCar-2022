@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void convolution(int n, int m, short int mask[][3], unsigned char *original, unsigned char *resultado){  
+void convolution(int n, int m, short int mask[9], unsigned char *original, unsigned char *resultado){  
     int aux_i, aux_j;
     int aux;
     int pixel_resultante;
@@ -15,7 +15,7 @@ void convolution(int n, int m, short int mask[][3], unsigned char *original, uns
             aux = j;
             for(p = 0; p < 3; p++){
                 for(q = 0; q < 3; q++){
-                    pixel_resultante += original[aux_i*n + aux_j] * mask[p][q];
+                    pixel_resultante += original[aux_i*n + aux_j] * mask[p*3 + q];
                     aux_j++;
                 }
                 j = aux;
@@ -85,10 +85,7 @@ int main(int argc, char **argv){
     }
 
     // matriz de convolução gaussiana
-    short int mask[3][3] = {{1,  2,   1},
-                            {2,  4,  2},
-                            {1,  2,  1}};
-
+    short int mask[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
 
     // abrir nova imagem em modo de escrita e "copiar" o cabeçalho da imagem original
     nova_imagem = fopen(nome_imagem_saida , "w");
