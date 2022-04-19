@@ -4,29 +4,31 @@
 
 __global__
 void convolution(int n, int m, short int *mask, unsigned char *original, unsigned char *resultado){  
+    int i = blockIdx.y * blockDim.y + threadIdx.x;
+    int j = blockIdx.x * blockDim.x + threadIdx.y;
     int aux_i, aux_j;
     int aux;
     int pixel_resultante;
     int p, q; // for interno, da mascara 3x3
-    for(int i = 0; i < n; i++){
-        for(int j = 0; j < m; j++){
-            pixel_resultante = 0;
-            aux_i = i; 
-            aux_j = j;
-            aux = j;
-            for(p = 0; p < 3; p++){
-                for(q = 0; q < 3; q++){
-                    pixel_resultante += original[aux_i*n + aux_j] * mask[p*3 + q];
-                    aux_j++;
-                }
-                j = aux;
-                aux_i++;
-            }
-            //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
-            resultado[i*n + j] = pixel_resultante/16;
-            //resultado[i*n + j] = original[i*n + j];
-        }
+
+    if (i >= n || j >= m){
+        return;
     }
+
+    pixel_resultante = 0;
+    aux_i = i; 
+    aux_j = j;
+    aux = j;
+    for(p = 0; p < 3; p++){
+        for(q = 0; q < 3; q++){
+            pixel_resultante += original[aux_i*n + aux_j] * mask[p*3 + q];
+            aux_j++;
+        }
+        j = aux;
+        aux_i++;
+    }
+    //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
+    resultado[i*n + j] = pixel_resultante/16;
 }
 
 int main(int argc, char **argv){
@@ -99,8 +101,9 @@ int main(int argc, char **argv){
     cudaMalloc(&d_mask, 3 * 3 * sizeof(short int*));
     cudaMemcpy(d_mask, mask, 3 * 3 * sizeof(short int*), cudaMemcpyHostToDevice);
 
-
-    convolution<<<1,1>>>(n, m, d_mask, d_original, d_resultado);
+    dim3 grid(32,32);
+    dim3 block(32,32);
+    convolution<<<grid,block>>>(n, m, d_mask, d_original, d_resultado);
    
     cudaMemcpy(resultado, d_resultado, n * m *sizeof(unsigned char*), cudaMemcpyDeviceToHost);
     printf("Device Variable Copying:\t%s\n", cudaGetErrorString(cudaGetLastError()));
