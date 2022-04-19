@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void convolution(int n, int m, short int mask[][3], unsigned char **original, unsigned char **resultado){  
+void convolution(int n, int m, short int mask[][3], unsigned char *original, unsigned char *resultado){  
     int aux_i, aux_j;
     int aux;
     int pixel_resultante;
@@ -15,14 +15,14 @@ void convolution(int n, int m, short int mask[][3], unsigned char **original, un
             aux = j;
             for(p = 0; p < 3; p++){
                 for(q = 0; q < 3; q++){
-                    pixel_resultante += original[aux_i][aux_j] * mask[p][q];
+                    pixel_resultante += original[aux_i*n + aux_j] * mask[p][q];
                     aux_j++;
                 }
                 j = aux;
                 aux_i++;
             }
             //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
-            resultado[i][j] = pixel_resultante/16;
+            resultado[i*n + j] = pixel_resultante/16;
         }
     }
 }
@@ -66,26 +66,21 @@ int main(int argc, char **argv){
 
     // Matriz para guardar a imagem original
     // Utilizando o método de bordas "pretas"
-    unsigned char **original;
+    unsigned char *original;
     int n_col = m+2;
     int n_row = n+2;
-    original = (unsigned char**) malloc(n_row * sizeof(unsigned char*));
-    for (i=0; i<n_row; i++){
-        original[i] = (unsigned char*) malloc(n_col * sizeof(unsigned char));
-    }
+    original = (unsigned char*) malloc(n_row * n_col * sizeof(unsigned char*));
+
 
     // Matriz pra servir de buffer pra imagem resultado
-    unsigned char **resultado;
-    resultado = (unsigned char**) malloc(n *sizeof(unsigned char*));
-    for (i=0; i<n;i++){
-        resultado[i] = (unsigned char*) malloc(m * sizeof(unsigned char));
-    }
+    unsigned char *resultado;
+    resultado = (unsigned char*) malloc(n * m *sizeof(unsigned char*));
 
 
     // Leitura da imagem original
     for(i = 1; i < n+1; i++){
         for(j = 1; j < m+1; j++){
-            fscanf(imagem, "%c", &original[i][j]);
+            fscanf(imagem, "%c", &original[i*n + j]);
         }
     }
 
@@ -106,7 +101,7 @@ int main(int argc, char **argv){
     // escrever no arquivo resultado
     for(i = 0; i < n; i++){
         for(j = 0; j < m; j++){
-            fprintf(nova_imagem, "%c", (char) resultado[i][j]);
+            fprintf(nova_imagem, "%c", (char) resultado[i*n + j]);
         }
     }
 
@@ -114,14 +109,7 @@ int main(int argc, char **argv){
     fclose(imagem);
     fclose(nova_imagem);
 
-    for(i = 0; i < n+2; i++){
-        free(original[i]);
-    }
     free(original);
-
-    for(i = 0; i<=n; i++){
-        free(resultado[i]);
-    }
     free(resultado);
 
     return 0;
