@@ -7,7 +7,6 @@ void convolution(int n, int m, short int *mask, unsigned char *original, unsigne
     int i = blockIdx.y * blockDim.y + threadIdx.x;
     int j = blockIdx.x * blockDim.x + threadIdx.y;
     int aux_i, aux_j;
-    int aux;
     int pixel_resultante;
     int p, q; // for interno, da mascara 3x3
 
@@ -18,13 +17,11 @@ void convolution(int n, int m, short int *mask, unsigned char *original, unsigne
     pixel_resultante = 0;
     aux_i = i; 
     aux_j = j;
-    aux = j;
     for(p = 0; p < 3; p++){
         for(q = 0; q < 3; q++){
             pixel_resultante += original[aux_i*n + aux_j] * mask[p*3 + q];
             aux_j++;
         }
-        j = aux;
         aux_i++;
     }
     //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
@@ -101,7 +98,12 @@ int main(int argc, char **argv){
     cudaMalloc(&d_mask, 3 * 3 * sizeof(short int*));
     cudaMemcpy(d_mask, mask, 3 * 3 * sizeof(short int*), cudaMemcpyHostToDevice);
 
-    dim3 grid(32,32);
+
+    // para calcular uma imagem inteira, 256x256 precisamos de um grid 8x8 (8x32 =256)
+    // o x indica o calculo dos pixeis na horizontal e o y na vertical
+    // como o valor máximo de threads por bloco são travados em 1024 manteremos o dim3 block com valores travados (em 1024) e 
+    // alteraremos o valor do grid conforme o MxN pego na leitura do arquivo.
+    dim3 grid(m/32,n/32);
     dim3 block(32,32);
     convolution<<<grid,block>>>(n, m, d_mask, d_original, d_resultado);
    
