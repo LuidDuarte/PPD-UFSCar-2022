@@ -3,26 +3,23 @@
 #include <string.h>
 
 void convolution(int n, int m, short int mask[9], unsigned char *original, unsigned char *resultado){  
-    int aux_i, aux_j;
-    int aux;
+    int i, j, aux_i, aux_j;
     int pixel_resultante;
     int p, q; // for interno, da mascara 3x3
-    for(int i = 0; i < n; i++){
-        for(int j = 0; j < m; j++){
+    for(i = 0; i < n; i++){
+        for(j = 0; j < m; j++){
             pixel_resultante = 0;
             aux_i = i; 
-            aux_j = j;
-            aux = j;
             for(p = 0; p < 3; p++){
+                aux_j = j;
                 for(q = 0; q < 3; q++){
-                    pixel_resultante += original[aux_i*n + aux_j] * mask[p*3 + q];
+                    pixel_resultante += original[aux_i*m + aux_j] * mask[p*3 + q];
                     aux_j++;
-                }
-                j = aux;
+                }                    
                 aux_i++;
             }
             //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
-            resultado[i*n + j] = pixel_resultante/16;
+            resultado[i*m + j] = pixel_resultante/16;
         }
     }
 }
@@ -46,7 +43,7 @@ int main(int argc, char **argv){
     nome_imagem_saida = argv[2];
 
     imagem = fopen(nome_imagem , "r") ; // Abre o arquivo no modo leitura
-    if(imagem == NULL){ // Verificase o arquivo existe e foi aberto
+    if(imagem == NULL){ // Verifica se o arquivo existe e foi aberto
         printf("Erro na abertura do arquivo %s\n", nome_imagem);
         return 0;
     }
@@ -80,7 +77,7 @@ int main(int argc, char **argv){
     // Leitura da imagem original
     for(i = 1; i < n+1; i++){
         for(j = 1; j < m+1; j++){
-            fscanf(imagem, "%c", &original[i*n + j]);
+            fscanf(imagem, "%c", &original[i*m + j]);
         }
     }
 
@@ -89,19 +86,20 @@ int main(int argc, char **argv){
 
     // abrir nova imagem em modo de escrita e "copiar" o cabeçalho da imagem original
     nova_imagem = fopen(nome_imagem_saida , "w");
-    fprintf(nova_imagem,"P5\n%d %d\n %d\n", m, n, max);
+    fprintf(nova_imagem,"P5\n%d %d %d\n", m, n, max);
 
 
     convolution(n, m, mask, original, resultado);
 
+    printf("N: %d, M: %d", n ,m);
 
     // escrever no arquivo resultado
+    int tam = n * m;
     for(i = 0; i < n; i++){
         for(j = 0; j < m; j++){
-            fprintf(nova_imagem, "%c", (char) resultado[i*n + j]);
+            fprintf(nova_imagem, "%c", resultado[i*m + j]);
         }
     }
-
 
     fclose(imagem);
     fclose(nova_imagem);
