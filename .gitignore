@@ -1,3 +1,4 @@
 *.out
 *.o
-1.pgm
+*.pgm
+.vscode/

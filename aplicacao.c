@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-void convolution(int altura, int largura, short int mask[9], unsigned char *original, unsigned char *resultado){  
+void convolution(int altura, int largura, short int mask[25], unsigned char *original, unsigned char *resultado){  
     int i, j, aux_i, aux_j;
     int pixel_resultante;
     int p, q; // for interno, da mascara 3x3
@@ -10,16 +11,16 @@ void convolution(int altura, int largura, short int mask[9], unsigned char *orig
         for(j = 0; j < largura; j++){
             pixel_resultante = 0;
             aux_i = i; 
-            for(p = 0; p < 3; p++){
+            for(p = 0; p < 5; p++){
                 aux_j = j;
-                for(q = 0; q < 3; q++){
-                    pixel_resultante += original[aux_i*largura + aux_j] * mask[p*3 + q];
+                for(q = 0; q < 5; q++){
+                    pixel_resultante += original[aux_i*largura + aux_j] * mask[p*5 + q];
                     aux_j++;
                 }                    
                 aux_i++;
             }
-            //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
-            resultado[i*largura + j] = pixel_resultante/16;
+            //por estarmos utilizando uma matriz 5x5 de gauss, após a soma das multiplicações devemos dividir por 273
+            resultado[i*largura + j] = pixel_resultante/273;
         }
     }
 }
@@ -82,24 +83,43 @@ int main(int argc, char **argv){
     }
 
     // matriz de convolução gaussiana
-    short int mask[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+    //gaus 3x3:
+    // short int mask[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+    //gaus 5x5
+    short int mask[25] = {1,  4,  7,  4, 1, 
+                          4, 16, 26, 16, 4, 
+                          7, 26, 41, 26, 7, 
+                          4, 16, 26, 16, 4, 
+                          1,  4,  7,  4, 1};
 
     // abrir nova imagem em modo de escrita e "copiar" o cabeçalho da imagem original
     nova_imagem = fopen(nome_imagem_saida , "w");
-    fprintf(nova_imagem,"P5\n%d %d %d\n", largura, altura, max);
+    fprintf(nova_imagem,"P5\n%d %d\n%d\n", largura, altura, max);
 
+    float etime;
+    struct timespec inic, fim;
+
+    clock_gettime(CLOCK_REALTIME, &inic);
 
     convolution(altura, largura, mask, original, resultado);
 
-    printf("N: %d, M: %d", altura ,largura);
+    clock_gettime(CLOCK_REALTIME, &fim);
+
+    // tempo decorrido: elapsed time
+    etime = (fim.tv_sec + fim.tv_nsec/1000000000.) - 
+            (inic.tv_sec + inic.tv_nsec/1000000000.) ;
+
+    printf("Tempo da convolução: %lf\n", etime);
+    printf("Altura: %d\tLargura: %d", altura ,largura);
 
     // escrever no arquivo resultado
-    for(i = 0; i < altura; i++){
-        for(j = 0; j < largura; j++){
+    for (i = 0; i < altura ; i++){
+        for (j = 0; j < largura; j++){
             fprintf(nova_imagem, "%c", resultado[i*largura + j]);
         }
     }
-
+    //fputs(resultado, nova_imagem);
+    
     fclose(imagem);
     fclose(nova_imagem);
 

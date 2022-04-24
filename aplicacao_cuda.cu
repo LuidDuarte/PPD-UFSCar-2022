@@ -16,16 +16,16 @@ void convolution(int altura, int largura, short int *mask, unsigned char *origin
 
     pixel_resultante = 0;
     aux_i = i; 
-    for(p = 0; p < 3; p++){
+    for(p = 0; p < 5; p++){
         aux_j = j;
-        for(q = 0; q < 3; q++){
-            pixel_resultante += original[aux_i*largura + aux_j] * mask[p*3 + q];
+        for(q = 0; q < 5; q++){
+            pixel_resultante += original[aux_i*largura + aux_j] * mask[p*5 + q];
             aux_j++;
         }
         aux_i++;
     }
-    //por estarmos utilizando uma matriz 3x3 de gauss, após a soma das multiplicações devemos dividir por 16
-    resultado[i*largura + j] = pixel_resultante/16;
+    //por estarmos utilizando uma matriz 5x5 de gauss, após a soma das multiplicações devemos dividir por 273
+    resultado[i*largura + j] = pixel_resultante/273;
 }
 
 int main(int argc, char **argv){
@@ -35,7 +35,8 @@ int main(int argc, char **argv){
     char *nome_imagem_saida;
     char key[128];
     int i, j, largura, altura, max;
-
+    float etime;
+    struct timespec inic, fim;
 
     if (argc != 3){
         printf("Erro, o programa deve receber o nome da imagem de entrada \n"
@@ -91,12 +92,20 @@ int main(int argc, char **argv){
     cudaMemcpy(d_original, original, altura * largura *sizeof(unsigned char*), cudaMemcpyHostToDevice);
 
     // matriz de convolução gaussiana
-    short int mask[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+    // gaus 3x3
+    // short int mask[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+    
+    //gaus 5x5
+    short int mask[25] = {1,  4,  7,  4, 1, 
+                          4, 16, 26, 16, 4, 
+                          7, 26, 41, 26, 7, 
+                          4, 16, 26, 16, 4, 
+                          1,  4,  7,  4, 1};
 
 
     short int *d_mask;
-    cudaMalloc(&d_mask, 3 * 3 * sizeof(short int*));
-    cudaMemcpy(d_mask, mask, 3 * 3 * sizeof(short int*), cudaMemcpyHostToDevice);
+    cudaMalloc(&d_mask, 5 * 5 * sizeof(short int*));
+    cudaMemcpy(d_mask, mask, 5 * 5 * sizeof(short int*), cudaMemcpyHostToDevice);
 
 
     // para calcular uma imagem inteira, 256x256 precisamos de um grid 8x8 (8x32 =256)
@@ -105,23 +114,42 @@ int main(int argc, char **argv){
     // alteraremos o valor do grid conforme o MxN pego na leitura do arquivo.
     dim3 grid(largura/32,altura/32);
     dim3 block(32,32);
+    
+
+    clock_gettime(CLOCK_REALTIME, &inic);
+
     convolution<<<grid,block>>>(altura, largura, d_mask, d_original, d_resultado);
-   
-    cudaMemcpy(resultado, d_resultado, altura * largura *sizeof(unsigned char*), cudaMemcpyDeviceToHost);
-    printf("Device Variable Copying:\t%s\n", cudaGetErrorString(cudaGetLastError()));
+    cudaMemcpy(resultado, d_resultado, altura * largura * sizeof(unsigned char*), cudaMemcpyDeviceToHost);
+    const char *string_error = cudaGetErrorString(cudaGetLastError());
     cudaDeviceSynchronize();
 
+    clock_gettime(CLOCK_REALTIME, &fim);
 
+    // tempo decorrido: elapsed time
+    etime = (fim.tv_sec + fim.tv_nsec/1000000000.) - 
+            (inic.tv_sec + inic.tv_nsec/1000000000.) ;
+
+    printf("Tempo da convolução: %lf\n", etime);
+    printf("Altura: %d\tLargura: %d\n", altura ,largura);
+    
+
+    if(strcmp(string_error,"no error") != 0){
+      printf("Device Variable Copying:\t%s\n", string_error);
+    }
     // abrir nova imagem em modo de escrita e "copiar" o cabeçalho da imagem original
     nova_imagem = fopen(nome_imagem_saida , "w");
     fprintf(nova_imagem,"P5\n%d %d\n %d\n", largura, altura, max);
 
     // escrever no arquivo resultado
-    for(i = 0; i < altura; i++){
-        for(j = 0; j < largura; j++){
-            fprintf(nova_imagem, "%c", (char) resultado[i*largura + j]);
+    for (i = 0; i < altura ; i++){
+        for (j = 0; j < largura; j++){
+            fprintf(nova_imagem, "%c", resultado[i*largura + j]);
         }
     }
+    
+    
+    //fputs(resultado, nova_imagem);
+
 
 
     fclose(imagem);
